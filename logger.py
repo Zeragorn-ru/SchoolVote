@@ -4,13 +4,6 @@ import logging
 file_log = logging.FileHandler('./Log.log', encoding = "utf-8")
 console_out = logging.StreamHandler()
 
-level_table = {
-    "DEBUG": 0,
-    "INFO": 1,
-    "WARN": 2,
-    "ERROR": 3,
-    "CRITICAL": 4
-}
 
 logging.basicConfig(
     handlers = (file_log, console_out),
