@@ -2,3 +2,4 @@ Log.Log
 __*__
 .venv
 config.json
+*.db
