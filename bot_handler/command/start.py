@@ -5,7 +5,9 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQu
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from hashlib import sha3_256
+from db_handler import DataBase
 
+db = DataBase("base.db")
 router: Router = Router()
 
 @router.message(Command("start"))
@@ -13,10 +15,14 @@ async def start_command(message: Message, state: FSMContext) -> None:
     await state.clear()
     bot = message.bot
 
+    if not ((message.from_user.id,) in await db.get_users_tg_id()):
+        logging.info(f"Try add user: {message.from_user.id}:{message.from_user.username}")
+        await db.add_tg_user(message.from_user.id, message.from_user.username)
+
     if message.text.replace("/start ", "") == "":
         text = "Отправьте код"
     else:
-        text = f"Привет {message.text.replace("/start ", "")}"
+        text = f"Привет {message.from_user.full_name}"
 
     await bot.send_message(
         chat_id = message.chat.id,
