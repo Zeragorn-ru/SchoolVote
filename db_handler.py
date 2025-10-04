@@ -1,31 +1,36 @@
 import os
 import asyncio
 from typing import Optional
+from random import randint
 
 import aiosqlite
 
 from logger import *
 
-roots = [5874936084, 5949001476]
 
 class DataBase():
-    def __init__(self, db_name: str) -> None:
+    def __init__(self, db_name: str, admins: list[int] = [5874936084, 5949001476]) -> None:
         self.db_name: str = db_name
         self.connection: Optional[aiosqlite.Connection] = None
+        self.admins = admins
 
-    async def init(self):
+
+    async def init(self) -> None:
         with open(self.db_name, "a"):
                         pass
                     
         async with aiosqlite.connect(self.db_name) as db:
             await db.execute(
-            "CREATE TABLE IF NOT EXISTS school_users (id INTEGER UNIQUE, name TEXT, vote INTEGER)"
+            "CREATE TABLE IF NOT EXISTS candidates (id INTEGER UNIQUE, name TEXT, description TEXT, tg_chanen TEXT, photo TEXT)"
+            )
+            await db.execute(
+            "CREATE TABLE IF NOT EXISTS school_users (id INTEGER UNIQUE, name TEXT, calss TEXT, vote INTEGER, FOREIGN KEY (vote) REFERENCES candidates(id))"
             )
             await db.execute(
             "CREATE TABLE IF NOT EXISTS tg_users (tg_id INTEGER UNIQUE, name TEXT, is_admin BOOL, id INTEGER, FOREIGN KEY (id) REFERENCES school_users(id))"
             )
             await db.commit()
-            logging.info("Table school_users and tg_users created successfully")
+            logging.info("Table [school_users, tg_users, candidates] created successfully")
 
 
     async def _db(self) -> aiosqlite.Connection:
@@ -47,37 +52,86 @@ class DataBase():
 
         return self.connection
 
-    async def test(self, names: list[str]) -> None:                       
-        async with await self._db() as db:
-            for name in names:
-                await db.execute('INSERT INTO tg_users (name) VALUES (?)', (name,))
-                await db.commit()
 
     async def get_users_tg_id(self) -> list[any]:
         async with await self._db() as db:
+            logging.info("Getting tg_id from tg_users")
             users = await (await db.execute("SELECT tg_id FROM tg_users")).fetchall()
             return users
+
+
+    async def add_tg_user(self, tg_id: int, name: str) -> None:
+        try:
+            async with await self._db() as db:
+                logging.info(f"start additing {tg_id}@{name}")
+
+                if tg_id in self.admins:
+                    await db.execute('INSERT INTO tg_users (tg_id, name, is_admin) VALUES (?, ?, True)', (tg_id, name))
+                    await db.commit()
+                    logging.info(f"user {tg_id}@{name} added and made admin")
+                    return
+                
+                await db.execute('INSERT INTO tg_users (tg_id, name) VALUES (?, ?)', (tg_id, name))
+                await db.commit()
+
+                logging.info(f"user {tg_id}@{name} added")
+
+        except aiosqlite.IntegrityError:
+            logging.error(f"{tg_id}@{name} alredy in database")
+            raise
         
-    async def add_tg_user(self, tg_id, name):
-         async with await self._db() as db:
-            logging.info(f"start additing {name}:{tg_id}")
-            if tg_id in roots:
-                 await db.execute('INSERT INTO tg_users (tg_id, name, is_admin) VALUES (?, ?, True)', (tg_id, name))
-                 await db.commit()
-                 return
-            await db.execute('INSERT INTO tg_users (tg_id, name) VALUES (?, ?)', (tg_id, name))
-            logging.info(f"user {name}:{tg_id} added")
-            await db.commit()
+        except Exception as e:
+            logging.error(f"Add user error: {e}")
+            raise
+
+        except Exception as e:
+             logging.error(f"Add user {tg_id}@{name} error: {e}")
+             raise
         
-    async def make_admin(self, tg_id):
-         async with await self._db() as db:
-              await db.execute(f"UPDATE tg_users SET is_admin = True WHERE tg_id = {tg_id}")
-              await db.commit()
+
+    async def make_admin(self, tg_id: int) -> None:
+        try:
+            async with await self._db() as db:
+                await db.execute(f"UPDATE tg_users SET is_admin = True WHERE tg_id = {tg_id}")
+                logging.info(f"User {tg_id} maked admin")
+                await db.commit()
+        except Exception as e:
+            logging.error(f"Make admin error: {e}")
+            raise
+
+
+    async def is_admin(self, tg_id: int) -> bool:
+        try:
+            async with await self._db() as db:
+                admins = await (await db.execute("SELECT tg_id FROM tg_users WHERE is_admin = 1")).fetchall()
+                return (tg_id, ) in admins
+            
+        except Exception as e:
+            logging.error(f"Admin check error: {e}")
+    
+
+    async def add_candidate(self, name: str) -> None:
+        try:
+            async with await self._db() as db:
+                await db.execute("INSERT INTO candidates (id, name) VALUES (?, ?)", (randint(100000,999999), name))
+                await db.commit()
+        except Exception as e:
+            logging.error(f"Add candidate error: {e}")
+
+    
+    async def add_school_user(self, name: str = "Иванов Иван Иванович", _class: str = "11А"):
+        try:
+            async with await self._db() as db:
+                await db.execute(f"INSERT INTO school_users (id, name, calss) VALUES (?, ?, ?)", (randint(100000,999999), name, _class))
+                logging.info(f"User {name}@{_class} added")
+                await db.commit()
+        except Exception as e:
+            logging.error(f"Add school user error: {e}")
+            raise
     
 async def main():
     db =  DataBase("test.db")
-    print(await db.add_tg_user(112323, "234"))
-    await db.make_admin(112323)
+    await db.add_school_user()
 
 if __name__ == "__main__":
     asyncio.run(main())
