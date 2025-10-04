@@ -54,10 +54,13 @@ class DataBase():
 
 
     async def get_users_tg_id(self) -> list[any]:
-        async with await self._db() as db:
-            logging.info("Getting tg_id from tg_users")
-            users = await (await db.execute("SELECT tg_id FROM tg_users")).fetchall()
-            return users
+        try:
+            async with await self._db() as db:
+                logging.info("Getting tg_id from tg_users")
+                users = await (await db.execute("SELECT tg_id FROM tg_users")).fetchall()
+                return users
+        except Exception as e:
+            logging.error(f"Get users tg_id error: {e}")
 
 
     async def add_tg_user(self, tg_id: int, name: str) -> None:
@@ -123,7 +126,7 @@ class DataBase():
         try:
             async with await self._db() as db:
                 await db.execute(f"INSERT INTO school_users (id, name, calss) VALUES (?, ?, ?)", (randint(100000,999999), name, _class))
-                logging.info(f"User {name}@{_class} added")
+                logging.info(f"User [{name}]@{_class} added")
                 await db.commit()
         except Exception as e:
             logging.error(f"Add school user error: {e}")
