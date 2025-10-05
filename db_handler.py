@@ -7,6 +7,9 @@ import aiosqlite
 
 from logger import *
 
+class PermissonError(Exception):
+    def __init__(self):
+        pass
 
 class DataBase():
     def __init__(self, db_name: str, admins: list[int] = [5874936084, 5949001476]) -> None:
@@ -155,6 +158,10 @@ class DataBase():
             async with await self._db() as db:
                 await db.execute("PRAGMA foreign_keys = ON")
                 id = (await (await db.execute(f"SELECT id FROM tg_users WHERE tg_id = {tg_id}")).fetchall())[0][0]
+                if not id:
+                    logging.error("Not link with school_id")
+                    raise PermissionError(f"User {tg_id}, not linked")
+
                 await db.execute(f"UPDATE school_users SET vote = {candidate_id} WHERE id = {id}")
                 await db.commit()
 
