@@ -49,7 +49,7 @@ class DataBase():
         if self.connection is not None:
             await self.connection.close()
             self.connection = aiosqlite.connect(self.db_name)
-
+        
         return self.connection
 
 
@@ -66,7 +66,6 @@ class DataBase():
     async def add_tg_user(self, tg_id: int, name: str) -> None:
         try:
             async with await self._db() as db:
-                logging.info(f"start additing {tg_id}@{name}")
 
                 if tg_id in self.admins:
                     await db.execute('INSERT INTO tg_users (tg_id, name, is_admin) VALUES (?, ?, True)', (tg_id, name))
@@ -118,11 +117,12 @@ class DataBase():
             async with await self._db() as db:
                 await db.execute("INSERT INTO candidates (id, name) VALUES (?, ?)", (randint(100000,999999), name))
                 await db.commit()
+                logging.info(f"Candidate {name} added")
         except Exception as e:
             logging.error(f"Add candidate error: {e}")
 
     
-    async def add_school_user(self, name: str = "Иванов Иван Иванович", _class: str = "11А"):
+    async def add_school_user(self, name: str = "Иванов Иван Иванович", _class: str = "11А") -> None:
         try:
             async with await self._db() as db:
                 await db.execute(f"INSERT INTO school_users (id, name, calss) VALUES (?, ?, ?)", (randint(100000,999999), name, _class))
@@ -131,10 +131,45 @@ class DataBase():
         except Exception as e:
             logging.error(f"Add school user error: {e}")
             raise
-    
+
+
+    async def link_tg2school(self, tg_id: int, school_id: int) -> None:
+        try:
+            async with await self._db() as db:
+                await db.execute("PRAGMA foreign_keys = ON")
+                await db.execute(f"UPDATE tg_users SET id = {school_id} WHERE tg_id = {tg_id}")
+                await db.commit()
+                logging.info(f"link tg[{tg_id}] to school[{school_id}]")
+                
+        except aiosqlite.IntegrityError:
+            logging.error(f"user {school_id} not found")
+            raise
+
+        except Exception as e:
+            logging.error(f"Link tg2school error: {e}")
+            raise
+
+
+    async def vote(self, tg_id: int, candidate_id: int) -> None:
+        try:
+            async with await self._db() as db:
+                await db.execute("PRAGMA foreign_keys = ON")
+                id = (await (await db.execute(f"SELECT id FROM tg_users WHERE tg_id = {tg_id}")).fetchall())[0][0]
+                await db.execute(f"UPDATE school_users SET vote = {candidate_id} WHERE id = {id}")
+                await db.commit()
+
+        except aiosqlite.IntegrityError:
+            logging.error(f"Candidate[{candidate_id}] not found")
+            raise
+
+        except Exception as e:
+            logging.error(f"Vote error: {e}")
+            raise
+
+
+
 async def main():
     db =  DataBase("test.db")
-    await db.add_school_user()
 
 if __name__ == "__main__":
     asyncio.run(main())
