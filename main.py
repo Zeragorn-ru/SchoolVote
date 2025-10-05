@@ -5,8 +5,13 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 import asyncio
 from config_loader import config, logging
 from bot_handler import routers
+import aiogram
 
-bot: Bot = Bot(config["BOTTOKEN"])
+try:
+    bot: Bot = Bot(config["BOTTOKEN"])
+except aiogram.utils.token.TokenValidationError:
+    logging.critical("INVALID BOT TOKEN")
+    raise
 
 dp: Dispatcher= Dispatcher()
 
