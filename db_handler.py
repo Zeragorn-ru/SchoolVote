@@ -187,9 +187,21 @@ class DataBase():
 
     
     async def is_linked(self, tg_id: int) -> None:
-        async with await self._db() as db:
-            link = await (await db.execute(f"SELECT id FROM tg_users WHERE tg_id = {tg_id}")).fetchall()
-            return link != [(None,)]
+        try:
+            async with await self._db() as db:
+                link = await (await db.execute(f"SELECT id FROM tg_users WHERE tg_id = {tg_id}")).fetchall()
+                return link != [(None,)]
+        except Exception as e:
+            logging.error(f"Link check error tg_id: {tg_id}")
+
+
+    async def get_candidates(self) -> list[tuple[any]]:
+        try:
+            async with await self._db() as db:
+                candidates = await db.execute("SELECT * from candidates")
+                return await candidates.fetchall()
+        except Exception as e:
+            logging.error(f"Get candidates list error: {e}")
 
 
 
