@@ -11,6 +11,14 @@ class PermissonError(Exception):
     def __init__(self):
         pass
 
+class SchoolUserNotFoundError(Exception):
+    def __init__(self):
+        pass
+
+class SchoolUserAlreadyLinkedError(Exception):
+    def __init__(self):
+        pass
+
 class DataBase():
     def __init__(self, db_name: str, admins: list[int] = [5874936084, 5949001476]) -> None:
         self.db_name: str = db_name
@@ -56,7 +64,7 @@ class DataBase():
         return self.connection
 
 
-    async def get_users_tg_id(self) -> list[any]:
+    async def get_users_tg_ids(self) -> list[any]:
         try:
             async with await self._db() as db:
                 logging.info("Getting tg_id from tg_users")
@@ -139,14 +147,18 @@ class DataBase():
     async def link_tg2school(self, tg_id: int, school_id: int) -> None:
         try:
             async with await self._db() as db:
-                await db.execute("PRAGMA foreign_keys = ON")
-                await db.execute(f"UPDATE tg_users SET id = {school_id} WHERE tg_id = {tg_id}")
-                await db.commit()
-                logging.info(f"link tg[{tg_id}] to school[{school_id}]")
+                if await (await db.execute(f"SELECT tg_id FROM tg_users WHERE id = {school_id}")).fetchall() == []:
+                    await db.execute("PRAGMA foreign_keys = ON")
+                    await db.execute(f"UPDATE tg_users SET id = {school_id} WHERE tg_id = {tg_id}")
+                    await db.commit()
+                    logging.info(f"link tg[{tg_id}] to school[{school_id}]")
+                else:
+                    logging.error(f"SchoolUserAlreadyLinkedError tg_id:{tg_id}, school_id:{school_id}")
+                    raise SchoolUserAlreadyLinkedError
                 
         except aiosqlite.IntegrityError:
             logging.error(f"user {school_id} not found")
-            raise
+            raise SchoolUserNotFoundError
 
         except Exception as e:
             logging.error(f"Link tg2school error: {e}")
@@ -173,10 +185,17 @@ class DataBase():
             logging.error(f"Vote error: {e}")
             raise
 
+    
+    async def is_linked(self, tg_id: int) -> None:
+        async with await self._db() as db:
+            link = await (await db.execute(f"SELECT id FROM tg_users WHERE tg_id = {tg_id}")).fetchall()
+            return link != [(None,)]
+
 
 
 async def main():
     db =  DataBase("test.db")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
