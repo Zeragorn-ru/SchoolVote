@@ -11,16 +11,13 @@ from db_handler import DataBase
 db = DataBase("base.db")
 router: Router = Router()
 
-class CandidateCallback(CallbackData, prefix="candidate"):
-    candidate_id: int
-
 @router.callback_query(F.data == "vote")
 async def vote_callback(callback: CallbackQuery):
     bot = callback.message.bot
 
     text = "Выберите кандидата из списка ниже, вы можете ознакомиться с его программой и проголосовать за него"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text = candidate[1], callback_data = CandidateCallback(candidate_id = candidate[0]).pack())] 
+        [InlineKeyboardButton(text = candidate[1], callback_data = CandidateCallback(candidate_id = candidate[0]).pack())]
         for candidate in await db.get_candidates()])
 
     await bot.edit_message_text(

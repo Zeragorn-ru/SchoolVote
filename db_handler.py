@@ -73,6 +73,14 @@ class DataBase():
         except Exception as e:
             logging.error(f"Get users tg_id error: {e}")
 
+    async def get_candidate_by_id(self, id: int) -> list[tuple[any]]:
+        try:
+            async with await self._db() as db:
+                logging.info("Getting candidate by id")
+                candidate = await (await db.execute("SELECT * FROM candidates WHERE id = ?", (id,))).fetchall()
+                return candidate
+        except Exception as e:
+            logging.error(f"Get candidate error: {e}")
 
     async def add_tg_user(self, tg_id: int, name: str) -> None:
         try:
