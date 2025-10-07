@@ -11,7 +11,10 @@ from db_handler import DataBase
 db = DataBase("base.db")
 router: Router = Router()
 
-@router.callback_query(F.data == "vote")
+class CandidateCallback(CallbackData, prefix="candidate"):
+    candidate_id: int
+
+@router.callback_query(F.data == "list")
 async def vote_callback(callback: CallbackQuery):
     bot = callback.message.bot
 

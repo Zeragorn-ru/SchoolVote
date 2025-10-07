@@ -32,7 +32,7 @@ async def start_command(message: Message, state: FSMContext) -> None:
         text = f"Ознакомьтесь со списком и выберите кандидата"
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Выбрать кандидата", callback_data="vote")]
+            [InlineKeyboardButton(text="Выбрать кандидата", callback_data="list")]
         ])
 
     else:
@@ -41,7 +41,7 @@ async def start_command(message: Message, state: FSMContext) -> None:
             text = f"Ознакомьтесь со списком и выберите кандидата"
         
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Выбрать кандидата", callback_data="vote")]
+                [InlineKeyboardButton(text="Выбрать кандидата", callback_data="list")]
             ])
         except SchoolUserNotFoundError:
             text = "Пользователь с таким кодом не найден, попробуйте проверить код или обратитесь к организаторам."
@@ -81,7 +81,7 @@ async def code_input(message: Message, state: FSMContext):
             text = f"Ознакомьтесь со списком и выберите кандидата"
         
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Выбрать кандидата", callback_data="vote")]
+                [InlineKeyboardButton(text="Выбрать кандидата", callback_data="list")]
             ])
         except SchoolUserNotFoundError:
             text = "Пользователь с таким кодом не найден, попробуйте проверить код или обратитесь к организаторам. Вы можете отправить код еще раз."

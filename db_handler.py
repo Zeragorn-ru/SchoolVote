@@ -32,7 +32,7 @@ class DataBase():
                     
         async with aiosqlite.connect(self.db_name) as db:
             await db.execute(
-            "CREATE TABLE IF NOT EXISTS candidates (id INTEGER UNIQUE, name TEXT, description TEXT, tg_chanen TEXT, photo TEXT)"
+            "CREATE TABLE IF NOT EXISTS candidates (id INTEGER UNIQUE, name TEXT, description TEXT, tg_chanen TEXT)"
             )
             await db.execute(
             "CREATE TABLE IF NOT EXISTS school_users (id INTEGER UNIQUE, name TEXT, calss TEXT, vote INTEGER, FOREIGN KEY (vote) REFERENCES candidates(id))"
@@ -211,10 +211,22 @@ class DataBase():
         except Exception as e:
             logging.error(f"Get candidates list error: {e}")
 
+    
+    async def is_vote(self, tg_id: int) -> None:
+        if self.is_linked(tg_id):
+            try:
+                async with await self._db() as db:
+                    link_id = await (await db.execute(f"SELECT id FROM tg_users WHERE tg_id = {tg_id}")).fetchall()
+                    vote = await (await db.execute(f"SELECT vote FROM school_users WHERE id = {link_id[0][0]}")).fetchall()
+                return vote != [(None,)]
+            except Exception as e:
+                logging.error(f"Vote check error tg_id: {tg_id}")
+                raise
 
 
 async def main():
     db =  DataBase("test.db")
+    print(await db.is_vote(1))
 
 
 if __name__ == "__main__":
